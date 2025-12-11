@@ -821,21 +821,6 @@ app.get('/admin', (c) => {
     
     <!-- CRITICAL: Check auth and admin role BEFORE rendering page -->
     <script>
-      // Helper function to decode JWT token
-      function decodeJWT(token) {
-        try {
-          const base64Url = token.split('.')[1];
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-          }).join(''));
-          return JSON.parse(jsonPayload);
-        } catch (e) {
-          console.error('Error decoding JWT:', e);
-          return null;
-        }
-      }
-      
       // Immediately check authentication before page renders
       const accessToken = localStorage.getItem('access_token');
       if (!accessToken) {
@@ -843,70 +828,66 @@ app.get('/admin', (c) => {
         window.location.href = '/login';
       }
       
-      // Decode JWT to get role (most reliable source)
-      const jwtPayload = decodeJWT(accessToken);
-      if (!jwtPayload || !jwtPayload.role) {
-        console.warn('Invalid token or missing role in JWT. Forcing re-login...');
+      // Get user from localStorage (includes role from backend)
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        // No user data, force re-login
+        console.warn('No user data in localStorage. Redirecting to login...');
         localStorage.clear();
         window.location.href = '/login';
       }
       
-      // Check if user has admin role from JWT (most reliable)
-      const userRole = jwtPayload.role;
-      const isAdmin = userRole === 'super_admin' || userRole === 'org_admin';
-      
-      console.log('JWT Role:', userRole, '| Is Admin:', isAdmin);
-      
-      // Also check localStorage user object and sync if needed
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          
-          // If user object doesn't have role, update it from JWT
-          if (!user.role && userRole) {
-            console.warn('User object missing role. Updating from JWT...');
-            user.role = userRole;
-            localStorage.setItem('user', JSON.stringify(user));
-          }
-          
-          const isAdminFromStorage = user.role === 'super_admin' || user.role === 'org_admin';
-          
-          // Use JWT role as source of truth
-          if (!isAdmin) {
-            // User is not admin, show access denied page immediately
-            const roleDisplay = userRole ? userRole.replace('_', ' ') : 'desconocido';
-            document.write(
-              '<!DOCTYPE html>' +
-              '<html lang="es">' +
-              '<head>' +
-                  '<meta charset="UTF-8">' +
-                  '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-                  '<title>Acceso Denegado - Metainfox AI</title>' +
-                  '<script src="https://cdn.tailwindcss.com"></script>' +
-                  '<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">' +
-              '</head>' +
-              '<body class="bg-gray-100 flex items-center justify-center min-h-screen">' +
-                  '<div class="bg-white rounded-lg shadow-xl p-8 max-w-md text-center">' +
-                      '<i class="fas fa-ban text-6xl text-red-500 mb-4"></i>' +
-                      '<h1 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>' +
-                      '<p class="text-gray-600 mb-4">No tienes permisos para acceder al panel de administración.</p>' +
-                      '<p class="text-sm text-gray-500 mb-6">Tu rol actual: <strong class="capitalize">' + roleDisplay + '</strong></p>' +
-                      '<a href="/" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">' +
-                          '<i class="fas fa-arrow-left mr-2"></i>Volver al Dashboard' +
-                      '</a>' +
-                  '</div>' +
-              '</body>' +
-              '</html>'
-            );
-            document.close();
-          }
-        } catch (e) {
-          console.error('Error parsing user data:', e);
+      try {
+        const user = JSON.parse(userStr);
+        
+        // CRITICAL: Check if user.role exists
+        if (!user.role) {
+          // Old user object without role - force re-login
+          console.warn('User object missing role field. Forcing re-login to get updated data...');
+          localStorage.clear();
           window.location.href = '/login';
         }
-      } else {
-        // No user data, redirect to login
+        
+        // Check if user has admin role
+        const isAdmin = user.role === 'super_admin' || user.role === 'org_admin';
+        
+        console.log('🔍 ADMIN CHECK - User Role:', user.role, '| Is Admin:', isAdmin);
+        
+        if (!isAdmin) {
+          // User is not admin, show access denied page immediately
+          const roleDisplay = user.role.replace('_', ' ');
+          document.write(
+            '<!DOCTYPE html>' +
+            '<html lang="es">' +
+            '<head>' +
+                '<meta charset="UTF-8">' +
+                '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+                '<title>Acceso Denegado - Metainfox AI</title>' +
+                '<script src="https://cdn.tailwindcss.com"><\/script>' +
+                '<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">' +
+            '</head>' +
+            '<body class="bg-gray-100 flex items-center justify-center min-h-screen">' +
+                '<div class="bg-white rounded-lg shadow-xl p-8 max-w-md text-center">' +
+                    '<i class="fas fa-ban text-6xl text-red-500 mb-4"></i>' +
+                    '<h1 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>' +
+                    '<p class="text-gray-600 mb-4">No tienes permisos para acceder al panel de administración.</p>' +
+                    '<p class="text-sm text-gray-500 mb-6">Tu rol actual: <strong class="capitalize">' + roleDisplay + '</strong></p>' +
+                    '<a href="/" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">' +
+                        '<i class="fas fa-arrow-left mr-2"><\/i>Volver al Dashboard' +
+                    '</a>' +
+                '</div>' +
+            '</body>' +
+            '</html>'
+          );
+          document.close();
+        }
+        
+        // If we reach here, user is admin - continue rendering page
+        
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+        // Invalid user data, force re-login
+        localStorage.clear();
         window.location.href = '/login';
       }
     </script>
