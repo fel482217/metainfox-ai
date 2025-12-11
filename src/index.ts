@@ -875,29 +875,30 @@ app.get('/admin', (c) => {
           // Use JWT role as source of truth
           if (!isAdmin) {
             // User is not admin, show access denied page immediately
-            document.write(\`
-              <!DOCTYPE html>
-              <html lang="es">
-              <head>
-                  <meta charset="UTF-8">
-                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                  <title>Acceso Denegado - Metainfox AI</title>
-                  <script src="https://cdn.tailwindcss.com"></script>
-                  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-              </head>
-              <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-                  <div class="bg-white rounded-lg shadow-xl p-8 max-w-md text-center">
-                      <i class="fas fa-ban text-6xl text-red-500 mb-4"></i>
-                      <h1 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>
-                      <p class="text-gray-600 mb-4">No tienes permisos para acceder al panel de administración.</p>
-                      <p class="text-sm text-gray-500 mb-6">Tu rol actual: <strong class="capitalize">\${user.role.replace('_', ' ')}</strong></p>
-                      <a href="/" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                          <i class="fas fa-arrow-left mr-2"></i>Volver al Dashboard
-                      </a>
-                  </div>
-              </body>
-              </html>
-            \`);
+            const roleDisplay = userRole ? userRole.replace('_', ' ') : 'desconocido';
+            document.write(
+              '<!DOCTYPE html>' +
+              '<html lang="es">' +
+              '<head>' +
+                  '<meta charset="UTF-8">' +
+                  '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+                  '<title>Acceso Denegado - Metainfox AI</title>' +
+                  '<script src="https://cdn.tailwindcss.com"></script>' +
+                  '<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">' +
+              '</head>' +
+              '<body class="bg-gray-100 flex items-center justify-center min-h-screen">' +
+                  '<div class="bg-white rounded-lg shadow-xl p-8 max-w-md text-center">' +
+                      '<i class="fas fa-ban text-6xl text-red-500 mb-4"></i>' +
+                      '<h1 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>' +
+                      '<p class="text-gray-600 mb-4">No tienes permisos para acceder al panel de administración.</p>' +
+                      '<p class="text-sm text-gray-500 mb-6">Tu rol actual: <strong class="capitalize">' + roleDisplay + '</strong></p>' +
+                      '<a href="/" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">' +
+                          '<i class="fas fa-arrow-left mr-2"></i>Volver al Dashboard' +
+                      '</a>' +
+                  '</div>' +
+              '</body>' +
+              '</html>'
+            );
             document.close();
           }
         } catch (e) {
