@@ -814,6 +814,10 @@ app.get('/', (c) => {
                         <p class="font-semibold" id="userName">Usuario</p>
                         <p class="text-xs opacity-75" id="orgName">Organización</p>
                     </div>
+                    <a href="/admin" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        <i class="fas fa-cog mr-1"></i>
+                        Admin
+                    </a>
                     <button onclick="logout()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg text-sm font-semibold transition">
                         <i class="fas fa-sign-out-alt mr-1"></i>
                         Salir
