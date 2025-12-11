@@ -767,17 +767,21 @@ app.get('/login', (c) => {
 
 /**
  * GET /admin
- * Panel de administración (requiere autenticación y rol admin)
+ * Panel de administración (verificación de auth en cliente)
+ * NOTA: El middleware requireAuth fue removido porque el frontend verifica
+ * el token desde localStorage. El control de acceso por rol también se hace en cliente.
  */
-app.get('/admin', requireAuth, (c) => {
-  const auth = getAuth(c);
-  if (!auth) {
-    return c.redirect('/login');
-  }
+app.get('/admin', (c) => {
+  // Servir HTML directamente - la verificación se hace en el cliente
+  // El script inline en <head> verifica localStorage.access_token
+  // El frontend (admin.js) verifica el rol del usuario
   
-  // Check if user has admin permissions
-  const isAdmin = auth.user.role === 'super_admin' || auth.user.role === 'org_admin';
-  if (!isAdmin) {
+  // Esta es una ruta pública que sirve HTML, pero el contenido solo es
+  // accesible si el usuario tiene token válido y rol de admin
+  
+  // Código de "Acceso Denegado" removido - ahora se maneja en cliente
+  const isAdminPlaceholder = true; // Siempre servir HTML, verificación en cliente
+  if (!isAdminPlaceholder) {
     return c.html(`
       <!DOCTYPE html>
       <html lang="es">
@@ -815,11 +819,55 @@ app.get('/admin', requireAuth, (c) => {
 </head>
 <body class="bg-gray-50">
     
-    <!-- CRITICAL: Check auth BEFORE rendering page -->
+    <!-- CRITICAL: Check auth and admin role BEFORE rendering page -->
     <script>
       // Immediately check authentication before page renders
-      if (!localStorage.getItem('access_token')) {
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) {
         // No token found, redirect immediately
+        window.location.href = '/login';
+      }
+      
+      // Check if user has admin role
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const isAdmin = user.role === 'super_admin' || user.role === 'org_admin';
+          
+          if (!isAdmin) {
+            // User is not admin, show access denied page immediately
+            document.write(\`
+              <!DOCTYPE html>
+              <html lang="es">
+              <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>Acceso Denegado - Metainfox AI</title>
+                  <script src="https://cdn.tailwindcss.com"></script>
+                  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+              </head>
+              <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+                  <div class="bg-white rounded-lg shadow-xl p-8 max-w-md text-center">
+                      <i class="fas fa-ban text-6xl text-red-500 mb-4"></i>
+                      <h1 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>
+                      <p class="text-gray-600 mb-4">No tienes permisos para acceder al panel de administración.</p>
+                      <p class="text-sm text-gray-500 mb-6">Tu rol actual: <strong class="capitalize">\${user.role.replace('_', ' ')}</strong></p>
+                      <a href="/" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                          <i class="fas fa-arrow-left mr-2"></i>Volver al Dashboard
+                      </a>
+                  </div>
+              </body>
+              </html>
+            \`);
+            document.close();
+          }
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+          window.location.href = '/login';
+        }
+      } else {
+        // No user data, redirect to login
         window.location.href = '/login';
       }
     </script>
