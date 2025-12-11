@@ -828,7 +828,11 @@ app.get('/admin', (c) => {
           // No token found, redirect immediately
           console.warn('❌ No access token. Redirecting to login...');
           window.location.replace('/login');
-          return;
+          // STOP all HTML rendering and script execution
+          document.open();
+          document.write('<!DOCTYPE html><html><body></body></html>');
+          document.close();
+          return; // Stop execution
         }
         
         // Get user from localStorage (includes role from backend)
@@ -838,7 +842,11 @@ app.get('/admin', (c) => {
           console.warn('❌ No user data in localStorage. Clearing and redirecting...');
           localStorage.clear();
           window.location.replace('/login');
-          return;
+          // STOP all HTML rendering and script execution
+          document.open();
+          document.write('<!DOCTYPE html><html><body></body></html>');
+          document.close();
+          return; // Stop execution
         }
         
         let user;
@@ -850,7 +858,11 @@ app.get('/admin', (c) => {
           console.warn('🔄 Clearing localStorage and forcing fresh login...');
           localStorage.clear();
           window.location.replace('/login');
-          return;
+          // STOP all HTML rendering and script execution
+          document.open();
+          document.write('<!DOCTYPE html><html><body></body></html>');
+          document.close();
+          return; // Stop execution
         }
         
         // CRITICAL: Check if user.role exists
@@ -859,7 +871,11 @@ app.get('/admin', (c) => {
           console.warn('❌ User object missing role field. Forcing re-login...');
           localStorage.clear();
           window.location.replace('/login');
-          return;
+          // STOP all HTML rendering and script execution
+          document.open();
+          document.write('<!DOCTYPE html><html><body></body></html>');
+          document.close();
+          return; // Stop execution
         }
         
         // Check if user has admin role
@@ -975,6 +991,20 @@ app.get('/admin', (c) => {
         // Initialize admin panel on page load
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // CRITICAL: Verify we're still on /admin (not redirected)
+                if (!window.location.pathname.startsWith('/admin')) {
+                    console.log('⏭️ Skipping admin init - we were redirected');
+                    return;
+                }
+                
+                // Double-check authentication
+                const accessToken = localStorage.getItem('access_token');
+                const userStr = localStorage.getItem('user');
+                if (!accessToken || !userStr) {
+                    console.warn('⚠️ Missing auth on DOMContentLoaded - already redirected');
+                    return;
+                }
+                
                 // Load user info
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const org = JSON.parse(localStorage.getItem('organization') || '{}');
