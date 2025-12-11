@@ -1,0 +1,13 @@
+# Metainfox AI - Environment Variables (Local Development)
+# Copiar este archivo a .dev.vars y completar con tus keys
+
+# OBLIGATORIO: Groq API Key (obtener en https://console.groq.com)
+GROQ_API_KEY=your_groq_api_key_here
+
+# OPCIONAL: NVD API Key para feeds de vulnerabilidades CVE
+# Obtener en: https://nvd.nist.gov/developers/request-an-api-key
+NVD_API_KEY=your_nvd_api_key_here
+
+# OPCIONAL: News API Key para monitoreo de noticias
+# Obtener en: https://newsapi.org
+NEWS_API_KEY=your_news_api_key_here

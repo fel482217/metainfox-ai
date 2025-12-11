@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "metainfox-ai",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": "./dist",
+
+  // D1 Database para gestión de riesgos
+  // Nota: Descomentar después de crear la base de datos con: npx wrangler d1 create metainfox-db
+  // "d1_databases": [
+  //   {
+  //     "binding": "DB",
+  //     "database_name": "metainfox-db",
+  //     "database_id": "YOUR_DATABASE_ID_HERE"
+  //   }
+  // ],
+
+  // Variables de entorno (NO commits secrets aquí, usar wrangler secret)
+  // Para desarrollo local, crear archivo .dev.vars con:
+  // GROQ_API_KEY=your_groq_api_key_here
+  // NVD_API_KEY=your_nvd_api_key_here (opcional)
+  // NEWS_API_KEY=your_news_api_key_here (opcional)
+}
