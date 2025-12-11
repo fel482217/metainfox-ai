@@ -28,10 +28,11 @@ Sistema avanzado de gestión de riesgos empresariales que utiliza inteligencia a
 
 ## 🎯 URLs del Proyecto
 
-- **Producción**: https://2c2f0c9a.metainfox-ai.pages.dev
-- **API Producción**: https://2c2f0c9a.metainfox-ai.pages.dev/api
-- **Desarrollo**: https://3000-ixhphtag1cp5vzidyw43p-c81df28e.sandbox.novita.ai
-- **GitHub**: (Configurar con tu repositorio)
+- **🌐 Producción**: https://metainfox.io
+- **🔌 API**: https://metainfox.io/api
+- **💻 Desarrollo**: https://3000-ixhphtag1cp5vzidyw43p-c81df28e.sandbox.novita.ai
+- **📁 GitHub**: https://github.com/fel482217/metainfox-ai
+- **📦 Backup**: https://www.genspark.ai/api/files/s/6x5JM5ab
 
 ## 📊 Arquitectura de Datos
 
@@ -107,7 +108,7 @@ POST /api/report                  # Generar reporte ejecutivo
 
 ### Ejemplo de Análisis con IA
 ```bash
-curl -X POST https://your-domain/api/analyze \
+curl -X POST https://metainfox.io/api/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Detectados 500 intentos de login fallidos desde IPs rusas"

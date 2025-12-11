@@ -151,9 +151,9 @@ Una vez subido, tu repositorio tendrá:
 
 Después del push, tu proyecto estará en:
 
-- **Código**: https://github.com/fel482217/metainfox-ai
-- **Producción**: https://2c2f0c9a.metainfox-ai.pages.dev
-- **Backup**: https://www.genspark.ai/api/files/s/6x5JM5ab
+- **🌐 Producción**: https://metainfox.io
+- **📁 Código**: https://github.com/fel482217/metainfox-ai
+- **💾 Backup**: https://www.genspark.ai/api/files/s/6x5JM5ab
 
 ---
 
