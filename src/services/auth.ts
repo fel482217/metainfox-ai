@@ -296,7 +296,8 @@ export async function login(
         full_name: user.full_name,
         avatar_url: user.avatar_url,
         status: user.status,
-        email_verified: user.email_verified
+        email_verified: user.email_verified,
+        role: selectedOrg.role  // Include role for client-side auth checks
       },
       organization: {
         id: selectedOrg.organization_id,
