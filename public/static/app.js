@@ -25,7 +25,7 @@ function logout() {
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('user');
   localStorage.removeItem('organization');
-  window.location.href = '/static/auth.html';
+  window.location.href = '/login';
 }
 
 // Axios interceptor for authentication
@@ -52,7 +52,9 @@ axios.interceptors.response.use(
       try {
         const refreshToken = getRefreshToken();
         if (!refreshToken) {
-          throw new Error('No refresh token');
+          console.log('No refresh token available, redirecting to login');
+          logout();
+          return Promise.reject(new Error('No refresh token'));
         }
         
         const response = await axios.post('/api/auth/refresh', {
@@ -63,14 +65,18 @@ axios.interceptors.response.use(
           localStorage.setItem('access_token', response.data.access_token);
           originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
           return axios(originalRequest);
+        } else {
+          console.log('Token refresh failed, redirecting to login');
+          logout();
         }
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+        console.error('Token refresh error:', refreshError);
         logout();
         return Promise.reject(refreshError);
       }
     }
     
+    // For other errors, just reject
     return Promise.reject(error);
   }
 );
@@ -79,10 +85,22 @@ axios.interceptors.response.use(
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 Metainfox AI initialized');
   
-  // Check authentication
+  // Check authentication FIRST before anything else
   if (!isAuthenticated()) {
-    window.location.href = '/static/auth.html';
-    return;
+    console.log('Not authenticated, redirecting to login...');
+    // Show overlay for smooth redirect
+    const overlay = document.getElementById('authCheckOverlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+    }
+    // Clear any stale data
+    localStorage.removeItem('user');
+    localStorage.removeItem('organization');
+    // Small delay to show the message
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 500);
+    return; // Important: stop execution here
   }
   
   // Load user data from localStorage
@@ -99,11 +117,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch (error) {
     console.error('Error loading user data:', error);
+    // If user data is corrupt, logout
+    logout();
+    return;
   }
   
   // Load initial data
-  await loadDashboard();
-  await loadRisks();
+  try {
+    await loadDashboard();
+    await loadRisks();
+  } catch (error) {
+    console.error('Error loading initial data:', error);
+    // Don't logout here, just show error in UI
+  }
   
   // Setup event listeners
   setupEventListeners();

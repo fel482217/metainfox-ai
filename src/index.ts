@@ -417,7 +417,351 @@ app.post('/api/report', async (c) => {
  * Página de login/registro
  */
 app.get('/login', (c) => {
-  return c.redirect('/static/auth.html');
+  return c.html(`<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Metainfox AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    
+    <div class="max-w-md w-full">
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white mb-4 shadow-lg">
+                <i class="fas fa-shield-alt text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">Metainfox AI</h1>
+            <p class="text-gray-600 mt-2">Gestión Inteligente de Riesgos Empresariales</p>
+        </div>
+
+        <!-- Login/Register Card -->
+        <div class="bg-white rounded-lg shadow-xl p-8">
+            <!-- Tabs -->
+            <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                <button id="loginTab" class="flex-1 py-2 text-center font-semibold rounded-md bg-white text-blue-600 shadow-sm transition">
+                    Iniciar Sesión
+                </button>
+                <button id="registerTab" class="flex-1 py-2 text-center font-semibold rounded-md text-gray-600 transition hover:text-gray-800">
+                    Registrarse
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-envelope text-gray-400 mr-1"></i>
+                        Email
+                    </label>
+                    <input type="email" id="loginEmail" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                           placeholder="tu@empresa.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-lock text-gray-400 mr-1"></i>
+                        Contraseña
+                    </label>
+                    <input type="password" id="loginPassword" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                           placeholder="••••••••">
+                </div>
+                
+                <!-- Human Verification Badge -->
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="loginHumanCheck" required class="mr-2 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                        <span class="text-gray-700">No soy un robot</span>
+                    </label>
+                    <a href="#" class="text-blue-600 hover:text-blue-700 transition">¿Olvidaste tu contraseña?</a>
+                </div>
+
+                <button type="submit" id="loginButton"
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition flex items-center justify-center shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <!-- Register Form (hidden) -->
+            <form id="registerForm" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-user text-gray-400 mr-1"></i>
+                        Nombre Completo
+                    </label>
+                    <input type="text" id="registerFullName" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                           placeholder="Juan Pérez">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-envelope text-gray-400 mr-1"></i>
+                        Email
+                    </label>
+                    <input type="email" id="registerEmail" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                           placeholder="tu@empresa.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-building text-gray-400 mr-1"></i>
+                        Nombre de Organización
+                    </label>
+                    <input type="text" id="registerOrgName" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                           placeholder="Mi Empresa S.A.">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-lock text-gray-400 mr-1"></i>
+                        Contraseña
+                    </label>
+                    <input type="password" id="registerPassword" required minlength="8"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                           placeholder="Mínimo 8 caracteres">
+                    <div class="mt-1">
+                        <div class="flex items-center text-xs text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            La contraseña debe tener al menos 8 caracteres
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Human Verification Badge -->
+                <div class="flex items-center text-sm">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="registerHumanCheck" required class="mr-2 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                        <span class="text-gray-700">No soy un robot</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="registerButton"
+                        class="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold py-3 rounded-lg hover:from-green-700 hover:to-teal-700 transition flex items-center justify-center shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Crear Cuenta
+                </button>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                    <div class="flex items-start">
+                        <i class="fas fa-gift text-blue-600 mt-1 mr-2"></i>
+                        <p class="text-xs text-blue-800">
+                            <strong>¡Prueba gratuita de 30 días!</strong><br>
+                            Al registrarte obtienes acceso completo sin necesidad de tarjeta de crédito.
+                        </p>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Messages -->
+            <div id="authMessage" class="mt-4 hidden">
+                <div class="p-4 rounded-lg" id="authMessageContent"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-6 space-y-2">
+            <p class="text-gray-600 text-sm">
+                Protegido por verificación humana
+            </p>
+            <p class="text-gray-500 text-xs">
+                &copy; 2024 Metainfox AI - Todos los derechos reservados
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+        // Tab switching
+        const loginTab = document.getElementById('loginTab');
+        const registerTab = document.getElementById('registerTab');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            loginTab.classList.remove('text-gray-600');
+            registerTab.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            registerTab.classList.add('text-gray-600');
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+        });
+
+        registerTab.addEventListener('click', () => {
+            registerTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            registerTab.classList.remove('text-gray-600');
+            loginTab.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            loginTab.classList.add('text-gray-600');
+            registerForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        });
+
+        // Message display
+        function showMessage(message, type = 'error') {
+            const messageDiv = document.getElementById('authMessage');
+            const messageContent = document.getElementById('authMessageContent');
+            
+            messageDiv.classList.remove('hidden');
+            messageContent.className = \`p-4 rounded-lg \${type === 'error' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}\`;
+            
+            const icon = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+            messageContent.innerHTML = \`<div class="flex items-center"><i class="fas \${icon} mr-2"></i>\${message}</div>\`;
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Simple human verification (checkbox)
+        function verifyHuman(checkboxId, buttonId) {
+            const checkbox = document.getElementById(checkboxId);
+            const button = document.getElementById(buttonId);
+            
+            checkbox.addEventListener('change', () => {
+                button.disabled = !checkbox.checked;
+            });
+            
+            return checkbox.checked;
+        }
+
+        // Initialize verification for both forms
+        verifyHuman('loginHumanCheck', 'loginButton');
+        verifyHuman('registerHumanCheck', 'registerButton');
+
+        // Initially disable buttons
+        document.getElementById('loginButton').disabled = true;
+        document.getElementById('registerButton').disabled = true;
+
+        // Login form
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const humanCheck = document.getElementById('loginHumanCheck');
+            if (!humanCheck.checked) {
+                showMessage('Por favor verifica que no eres un robot', 'error');
+                return;
+            }
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const button = document.getElementById('loginButton');
+            
+            // Disable button during request
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Iniciando sesión...';
+            
+            try {
+                const response = await axios.post('/api/auth/login', {
+                    email,
+                    password
+                });
+                
+                if (response.data.success) {
+                    // Store tokens
+                    localStorage.setItem('access_token', response.data.access_token);
+                    localStorage.setItem('refresh_token', response.data.refresh_token);
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    localStorage.setItem('organization', JSON.stringify(response.data.organization));
+                    
+                    showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    showMessage(response.data.message || 'Error al iniciar sesión', 'error');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Iniciar Sesión';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                const message = error.response?.data?.error || 'Error al iniciar sesión. Por favor intenta de nuevo.';
+                showMessage(message, 'error');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Iniciar Sesión';
+            }
+        });
+
+        // Register form
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const humanCheck = document.getElementById('registerHumanCheck');
+            if (!humanCheck.checked) {
+                showMessage('Por favor verifica que no eres un robot', 'error');
+                return;
+            }
+            
+            const full_name = document.getElementById('registerFullName').value;
+            const email = document.getElementById('registerEmail').value;
+            const organization_name = document.getElementById('registerOrgName').value;
+            const password = document.getElementById('registerPassword').value;
+            const button = document.getElementById('registerButton');
+            
+            // Disable button during request
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creando cuenta...';
+            
+            try {
+                const response = await axios.post('/api/auth/register', {
+                    full_name,
+                    email,
+                    organization_name,
+                    password
+                });
+                
+                if (response.data.success) {
+                    if (response.data.access_token) {
+                        // Auto-login successful
+                        localStorage.setItem('access_token', response.data.access_token);
+                        localStorage.setItem('refresh_token', response.data.refresh_token);
+                        localStorage.setItem('user', JSON.stringify(response.data.user));
+                        localStorage.setItem('organization', JSON.stringify(response.data.organization));
+                        
+                        showMessage('¡Cuenta creada exitosamente! Redirigiendo...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1500);
+                    } else {
+                        showMessage('Cuenta creada exitosamente. Por favor inicia sesión.', 'success');
+                        setTimeout(() => {
+                            loginTab.click();
+                            document.getElementById('loginEmail').value = email;
+                        }, 1500);
+                    }
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                const message = error.response?.data?.error || 'Error al registrar. Por favor intenta de nuevo.';
+                showMessage(message, 'error');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Crear Cuenta';
+            }
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('access_token')) {
+            window.location.href = '/';
+        }
+
+        // Add smooth animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const card = document.querySelector('.max-w-md');
+            if (card) {
+                card.style.opacity = '0';
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.5s';
+                    card.style.opacity = '1';
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>`);
 });
 
 /**
@@ -436,6 +780,14 @@ app.get('/', (c) => {
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
+    <!-- Loading/Redirect Overlay (hidden by default, shown by JS if not authenticated) -->
+    <div id="authCheckOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; justify-content: center; align-items: center;">
+        <div class="text-center">
+            <i class="fas fa-circle-notch fa-spin text-6xl text-blue-600 mb-4"></i>
+            <p class="text-xl text-gray-700">Verificando autenticación...</p>
+        </div>
+    </div>
+    
     <!-- Header -->
     <header class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
         <div class="container mx-auto px-6 py-4">
