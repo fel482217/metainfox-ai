@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Admin Access - Metainfox AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">🔍 Debug Admin Access</h1>
+        
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="font-bold text-blue-800 mb-2">Instrucciones:</h3>
+            <ol class="list-decimal list-inside space-y-2 text-blue-700">
+                <li>Primero haz login en <a href="/login" class="underline">/login</a></li>
+                <li>Luego vuelve aquí y presiona "Verificar Acceso"</li>
+                <li>Revisa los resultados para entender el problema</li>
+            </ol>
+        </div>
+        
+        <div class="space-y-4">
+            <button onclick="checkAccess()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 text-lg font-semibold w-full">
+                🔍 Verificar Acceso Admin
+            </button>
+            
+            <button onclick="clearAndReload()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 text-lg font-semibold w-full">
+                🗑️ Limpiar localStorage y Recargar
+            </button>
+        </div>
+        
+        <div id="results" class="mt-6 space-y-4"></div>
+    </div>
+
+    <script>
+        function addResult(emoji, title, message, data, type = 'info') {
+            const colors = {
+                success: 'bg-green-50 border-green-200 text-green-800',
+                error: 'bg-red-50 border-red-200 text-red-800',
+                warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+                info: 'bg-blue-50 border-blue-200 text-blue-800'
+            };
+            
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `p-4 rounded-lg border-2 ${colors[type]}`;
+            
+            let dataHtml = '';
+            if (data) {
+                dataHtml = `<pre class="mt-2 p-3 bg-white rounded text-xs overflow-x-auto">${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            div.innerHTML = `
+                <div class="flex items-start">
+                    <span class="text-2xl mr-3">${emoji}</span>
+                    <div class="flex-1">
+                        <h3 class="font-bold mb-1">${title}</h3>
+                        <p class="text-sm">${message}</p>
+                        ${dataHtml}
+                    </div>
+                </div>
+            `;
+            results.appendChild(div);
+        }
+
+        function clearAndReload() {
+            localStorage.clear();
+            sessionStorage.clear();
+            addResult('🗑️', 'Cache Limpiado', 'Recargando en 2 segundos...', null, 'warning');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+
+        function checkAccess() {
+            document.getElementById('results').innerHTML = '';
+            
+            addResult('🚀', 'Iniciando Diagnóstico', 'Verificando acceso al admin panel...', null, 'info');
+            
+            // Step 1: Check localStorage
+            const accessToken = localStorage.getItem('access_token');
+            const userStr = localStorage.getItem('user');
+            const orgStr = localStorage.getItem('organization');
+            
+            if (!accessToken) {
+                addResult('❌', 'Sin Token', 'No hay access_token en localStorage. Debes hacer login primero.', null, 'error');
+                return;
+            }
+            
+            addResult('✅', 'Token Encontrado', 'access_token está presente en localStorage', {
+                token_preview: accessToken.substring(0, 50) + '...'
+            }, 'success');
+            
+            if (!userStr) {
+                addResult('❌', 'Sin Usuario', 'No hay objeto user en localStorage', null, 'error');
+                return;
+            }
+            
+            // Step 2: Parse user object
+            let user;
+            try {
+                user = JSON.parse(userStr);
+                addResult('✅', 'Usuario Parseado', 'Objeto user parseado correctamente', user, 'success');
+            } catch (e) {
+                addResult('❌', 'Error de Parseo', 'No se pudo parsear el objeto user: ' + e.message, null, 'error');
+                return;
+            }
+            
+            // Step 3: Check role field
+            if (!user.role) {
+                addResult('❌', 'Campo role Ausente', 'El objeto user NO tiene el campo role. Esto es el problema.', user, 'error');
+                addResult('💡', 'Solución', 'Debes cerrar sesión y volver a hacer login para obtener el rol correcto.', null, 'warning');
+                return;
+            }
+            
+            addResult('✅', 'Campo role Presente', `El campo role existe: "${user.role}"`, {
+                role: user.role
+            }, 'success');
+            
+            // Step 4: Check if role is admin
+            const isAdmin = user.role === 'super_admin' || user.role === 'org_admin';
+            
+            if (isAdmin) {
+                addResult('✅', 'Usuario ES Administrador', `Tu rol "${user.role}" tiene permisos de administrador`, {
+                    role: user.role,
+                    isAdmin: true,
+                    allowedRoles: ['super_admin', 'org_admin']
+                }, 'success');
+                
+                addResult('🎉', 'Acceso Permitido', 'Deberías poder acceder a /admin sin problemas. Si sigues viendo "Acceso Denegado", es un problema de caché del navegador.', null, 'success');
+                
+                addResult('💡', 'Próximo Paso', 'Ve a <a href="/admin" class="underline font-bold">/admin</a> y verifica que funciona', null, 'info');
+                
+            } else {
+                addResult('❌', 'Usuario NO es Administrador', `Tu rol "${user.role}" NO tiene permisos de administrador`, {
+                    role: user.role,
+                    isAdmin: false,
+                    allowedRoles: ['super_admin', 'org_admin'],
+                    yourRole: user.role
+                }, 'error');
+                
+                addResult('💡', 'Solución', 'Necesitas una cuenta con rol "org_admin" o "super_admin". Las credenciales correctas son: admin@metainfox.io o manager@metainfox.io con password Demo123!@#', null, 'warning');
+            }
+            
+            // Step 5: Check organization
+            if (orgStr) {
+                try {
+                    const org = JSON.parse(orgStr);
+                    addResult('ℹ️', 'Organización', `Estás en la organización: ${org.name}`, org, 'info');
+                } catch (e) {
+                    addResult('⚠️', 'Organización Corrupta', 'El objeto organization está corrupto', null, 'warning');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
