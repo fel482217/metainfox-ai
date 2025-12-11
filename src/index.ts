@@ -884,32 +884,13 @@ app.get('/admin', (c) => {
         console.log('🔍 ADMIN CHECK - User Role:', user.role, '| Is Admin:', isAdmin);
         
         if (!isAdmin) {
-          // User is not admin, show access denied page immediately
-          const roleDisplay = user.role.replace('_', ' ');
-          document.write(
-            '<!DOCTYPE html>' +
-            '<html lang="es">' +
-            '<head>' +
-                '<meta charset="UTF-8">' +
-                '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-                '<title>Acceso Denegado - Metainfox AI</title>' +
-                '<script src="https://cdn.tailwindcss.com"><\/script>' +
-                '<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">' +
-            '</head>' +
-            '<body class="bg-gray-100 flex items-center justify-center min-h-screen">' +
-                '<div class="bg-white rounded-lg shadow-xl p-8 max-w-md text-center">' +
-                    '<i class="fas fa-ban text-6xl text-red-500 mb-4"></i>' +
-                    '<h1 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>' +
-                    '<p class="text-gray-600 mb-4">No tienes permisos para acceder al panel de administración.</p>' +
-                    '<p class="text-sm text-gray-500 mb-6">Tu rol actual: <strong class="capitalize">' + roleDisplay + '</strong></p>' +
-                    '<a href="/" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">' +
-                        '<i class="fas fa-arrow-left mr-2"><\/i>Volver al Dashboard' +
-                    '</a>' +
-                '</div>' +
-            '</body>' +
-            '</html>'
-          );
+          // User is not admin, show access denied page immediately - redirect to login
+          console.warn('❌ User is not admin. Redirecting to login...');
+          window.location.replace('/login?error=access_denied&role=' + user.role);
+          document.open();
+          document.write('<!DOCTYPE html><html><body></body></html>');
           document.close();
+          return; // CRITICAL: Stop execution
         }
         
         // If we reach here, user is admin - continue rendering page
@@ -1041,11 +1022,12 @@ app.get('/admin', (c) => {
                 }
             } catch (error) {
                 console.error('Error initializing admin panel:', error);
+                const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
                 document.getElementById('adminPanel').innerHTML = \`
                     <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                         <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
                         <h3 class="text-lg font-semibold text-red-800 mb-2">Error de Inicialización</h3>
-                        <p class="text-red-600">\${error.message}</p>
+                        <p class="text-red-600">\` + errorMsg + \`</p>
                     </div>
                 \`;
             }
