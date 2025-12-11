@@ -3,7 +3,7 @@
 import type { AIAnalysisRequest, AIAnalysisResponse, RiskCategory, RiskSeverity } from '../types';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.1-70b-versatile';
+const MODEL = 'llama-3.3-70b-versatile'; // Updated model (llama-3.1-70b-versatile is decommissioned)
 
 /**
  * Analiza un riesgo potencial usando IA
@@ -282,10 +282,17 @@ Eres profesional, conciso y orientado a la acción. Cuando sea posible, proporci
     });
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || 'No pude procesar tu consulta';
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Unexpected API response:', JSON.stringify(data));
+      return 'La IA no pudo generar una respuesta. Por favor intenta de nuevo.';
+    }
+    
+    return data.choices[0].message.content || 'No pude procesar tu consulta';
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat error:', error);
-    return 'Lo siento, hubo un error procesando tu consulta. Por favor intenta de nuevo.';
+    console.error('Error details:', error.message, error.stack);
+    return `Lo siento, hubo un error procesando tu consulta: ${error.message}`;
   }
 }

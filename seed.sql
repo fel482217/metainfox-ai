@@ -12,7 +12,7 @@ INSERT OR IGNORE INTO system_config (key, value, description) VALUES
   ('news_monitoring_enabled', 'true', 'Monitoreo de noticias habilitado');
 
 -- Riesgos de ejemplo (casos reales simulados)
-INSERT OR IGNORE INTO risks (category, severity, title, description, source, source_url, impact_score, likelihood_score, status, ai_analysis, tags) VALUES 
+INSERT OR REPLACE INTO risks (category, severity, title, description, source, source_url, impact_score, likelihood_score, risk_score, status, ai_analysis, tags) VALUES 
   (
     'cybersecurity', 
     'critical', 
@@ -22,6 +22,7 @@ INSERT OR IGNORE INTO risks (category, severity, title, description, source, sou
     'https://nvd.nist.gov/vuln/detail/CVE-2024-12345',
     95,
     85,
+    81,
     'open',
     '{"risk_type": "Remote Code Execution", "affected_systems": 12, "patch_available": true, "exploitation_detected": false, "recommendation": "Aplicar parche inmediatamente y monitorear logs de acceso"}',
     '["critical", "rce", "apache", "urgent"]'

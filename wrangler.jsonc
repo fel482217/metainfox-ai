@@ -7,14 +7,14 @@
   "pages_build_output_dir": "./dist",
 
   // D1 Database para gestión de riesgos
-  // Nota: Descomentar después de crear la base de datos con: npx wrangler d1 create metainfox-db
-  // "d1_databases": [
-  //   {
-  //     "binding": "DB",
-  //     "database_name": "metainfox-db",
-  //     "database_id": "YOUR_DATABASE_ID_HERE"
-  //   }
-  // ],
+  // Para desarrollo local, no necesita database_id (se crea automáticamente)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "metainfox-db",
+      "database_id": "local-dev-db"
+    }
+  ],
 
   // Variables de entorno (NO commits secrets aquí, usar wrangler secret)
   // Para desarrollo local, crear archivo .dev.vars con:
