@@ -821,6 +821,21 @@ app.get('/admin', (c) => {
     
     <!-- CRITICAL: Check auth and admin role BEFORE rendering page -->
     <script>
+      // Helper function to decode JWT token
+      function decodeJWT(token) {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          return JSON.parse(jsonPayload);
+        } catch (e) {
+          console.error('Error decoding JWT:', e);
+          return null;
+        }
+      }
+      
       // Immediately check authentication before page renders
       const accessToken = localStorage.getItem('access_token');
       if (!accessToken) {
@@ -828,21 +843,36 @@ app.get('/admin', (c) => {
         window.location.href = '/login';
       }
       
-      // Check if user has admin role
+      // Decode JWT to get role (most reliable source)
+      const jwtPayload = decodeJWT(accessToken);
+      if (!jwtPayload || !jwtPayload.role) {
+        console.warn('Invalid token or missing role in JWT. Forcing re-login...');
+        localStorage.clear();
+        window.location.href = '/login';
+      }
+      
+      // Check if user has admin role from JWT (most reliable)
+      const userRole = jwtPayload.role;
+      const isAdmin = userRole === 'super_admin' || userRole === 'org_admin';
+      
+      console.log('JWT Role:', userRole, '| Is Admin:', isAdmin);
+      
+      // Also check localStorage user object and sync if needed
       const userStr = localStorage.getItem('user');
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
           
-          // CRITICAL FIX: If user.role is missing, force logout to refresh user data
-          if (!user.role) {
-            console.warn('User object missing role field. Forcing re-login...');
-            localStorage.clear();
-            window.location.href = '/login';
+          // If user object doesn't have role, update it from JWT
+          if (!user.role && userRole) {
+            console.warn('User object missing role. Updating from JWT...');
+            user.role = userRole;
+            localStorage.setItem('user', JSON.stringify(user));
           }
           
-          const isAdmin = user.role === 'super_admin' || user.role === 'org_admin';
+          const isAdminFromStorage = user.role === 'super_admin' || user.role === 'org_admin';
           
+          // Use JWT role as source of truth
           if (!isAdmin) {
             // User is not admin, show access denied page immediately
             document.write(\`
