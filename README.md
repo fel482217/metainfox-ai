@@ -42,10 +42,11 @@ Ver documentación completa: [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md)
 ## 🎯 URLs del Proyecto
 
 - **🌐 Producción**: https://metainfox.io
+- **🔐 Login**: https://metainfox.io/login
 - **🔌 API**: https://metainfox.io/api
 - **💻 Desarrollo**: https://3000-ixhphtag1cp5vzidyw43p-c81df28e.sandbox.novita.ai
 - **📁 GitHub**: https://github.com/fel482217/metainfox-ai
-- **📦 Backup**: https://www.genspark.ai/api/files/s/6x5JM5ab
+- **📦 Último Backup**: https://www.genspark.ai/api/files/s/Lel8QesK (2025-12-11)
 
 ## 📊 Arquitectura de Datos
 
@@ -101,7 +102,57 @@ Ver documentación completa: [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md)
   - Generación de reportes ejecutivos
   - Análisis de sentimiento
 
+## 🔐 Autenticación y Seguridad
+
+### Sistema de Autenticación
+- **JWT Tokens**: Access token (1h) + Refresh token (7 días)
+- **Hash de Contraseñas**: SHA-256
+- **Rate Limiting**: Protección contra brute force
+- **Bot Detection**: Verificación humana en login/registro
+- **CSRF Protection**: Tokens anti-falsificación
+- **Tenant Isolation**: Aislamiento completo entre organizaciones
+
+### Credenciales de Demo
+Contraseña para todas: `Demo123!@#`
+
+| Email | Rol | Permisos |
+|-------|-----|----------|
+| admin@metainfox.io | Org Admin | Permisos completos |
+| manager@metainfox.io | Org Manager | Gestión de riesgos |
+| member@metainfox.io | Org Member | Crear/editar riesgos |
+| viewer@metainfox.io | Org Viewer | Solo lectura |
+
+**Organización**: Metainfox Demo
+
+### Flujo de Autenticación
+```
+1. Usuario accede a https://metainfox.io/
+2. Script inline verifica localStorage.access_token
+3. Si NO existe → Redirige a /login INMEDIATAMENTE
+4. Si existe → Carga dashboard con datos
+5. Login exitoso → Almacena tokens → Redirige a dashboard
+```
+
+**Nota Importante**: El dashboard NUNCA se renderiza sin autenticación válida (implementado con script inline en `<head>` para prevenir renderizado antes de verificación).
+
 ## 🚀 API Endpoints
+
+### Autenticación
+```bash
+POST /api/auth/login              # Iniciar sesión
+POST /api/auth/register           # Registrar nueva cuenta
+POST /api/auth/refresh            # Renovar access token
+POST /api/auth/logout             # Cerrar sesión
+GET  /api/auth/me                 # Obtener usuario actual
+```
+
+### Administración (requiere permisos)
+```bash
+GET  /api/admin/users             # Listar usuarios (admin)
+POST /api/admin/users/:id/role    # Cambiar rol (admin)
+GET  /api/admin/organizations     # Listar organizaciones (super_admin)
+GET  /api/admin/audit-logs        # Ver logs de auditoría (admin)
+```
 
 ### Dashboard & Analytics
 ```bash
@@ -321,19 +372,25 @@ Ser la plataforma líder en LATAM para gestión proactiva de riesgos, anticipand
 ## 🔄 Próximos Pasos Recomendados
 
 ### Corto Plazo (1-2 semanas)
-1. **Integración NVD/CVE** - Feed automático de vulnerabilidades
-2. **Sistema de Alertas** - Notificaciones por email/webhook
-3. **Dashboard Avanzado** - Gráficos con Chart.js
+1. ✅ ~~**Multi-tenancy**~~ - **COMPLETADO** ✓
+2. ✅ ~~**Autenticación JWT**~~ - **COMPLETADO** ✓
+3. ⏭️ **Recuperación de Contraseña** - Sistema de reset via email
+4. ⏭️ **2FA/MFA** - Autenticación de dos factores
+5. ⏭️ **Panel de Admin UI** - Interfaz web completa
 
 ### Medio Plazo (3-4 semanas)
-4. **Análisis de Noticias** - Sentiment analysis en tiempo real
-5. **Reportes Automáticos** - PDF/Excel con análisis
-6. **Multi-tenancy** - Soporte para múltiples organizaciones
+6. ⏭️ **Notificaciones Email** - Alertas automáticas
+7. ⏭️ **Dashboard de Organización** - Métricas por tenant
+8. ⏭️ **Integración NVD/CVE** - Feed de vulnerabilidades
+9. ⏭️ **Sistema de Roles Personalizados** - Permisos configurables
+10. ⏭️ **Dashboard Avanzado** - Gráficos con Chart.js
 
 ### Largo Plazo (2-3 meses)
-7. **Machine Learning** - Modelos predictivos propios
-8. **Integraciones** - SIEM, SOAR, Ticketing systems
-9. **Mobile App** - Aplicación nativa iOS/Android
+11. ⏭️ **SSO/SAML Integration** - Login empresarial
+12. ⏭️ **API Keys Management** - Tokens de API programáticos
+13. ⏭️ **Facturación Integrada** - Stripe/PayPal
+14. ⏭️ **Machine Learning** - Modelos predictivos propios
+15. ⏭️ **Mobile App** - Aplicación nativa iOS/Android
 
 ## 🤝 Contribuciones
 
@@ -343,7 +400,34 @@ Este es un proyecto interno de Metainfox AI. Para colaboraciones o consultas:
 
 ## 📝 Notas de Versión
 
-### v1.0.0 (2024-12-11)
+### v2.1.0 (2025-12-11) - CURRENT
+**🔐 Security & Authentication Improvements**
+- ✅ **CRITICAL FIX**: Prevenir render del dashboard sin autenticación
+  - Implementado script inline en `<head>` para verificación instantánea
+  - Dashboard completamente protegido, no se renderiza sin auth
+  - Redirect inmediato a `/login` si no hay token
+- ✅ Página de login directa en `/login` (sin redirects complejos)
+- ✅ Eliminado error 404 de favicon (agregado SVG inline)
+- ✅ Overlay de verificación de autenticación con feedback visual
+- ✅ Limpieza automática de localStorage en logout
+
+**📚 Documentation**
+- ✅ Documentación completa del flujo de autenticación ([AUTH_FLOW_FIX.md](./AUTH_FLOW_FIX.md))
+- ✅ README actualizado con credenciales de demo
+- ✅ Guía de endpoints de autenticación y administración
+
+### v2.0.0 (2025-12-10)
+**🏢 Enterprise Multi-Tenant System**
+- ✅ Sistema completo de multi-tenancy
+- ✅ Autenticación JWT (access + refresh tokens)
+- ✅ RBAC con 5 roles y 26 permisos
+- ✅ Gestión de usuarios y organizaciones
+- ✅ Audit logs para compliance
+- ✅ Rate limiting por tenant
+- ✅ Verificación anti-bot en login/registro
+
+### v1.0.0 (2024-12-01)
+**🚀 Initial Release**
 - ✅ Estructura base del proyecto
 - ✅ Dashboard interactivo
 - ✅ Integración con Groq (Llama 3.3 70B)
