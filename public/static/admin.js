@@ -727,3 +727,415 @@ function closeAllModals() {
     modal.classList.add('hidden');
   });
 }
+
+// =============================================================================
+// INIT FUNCTION - Entry point for Admin Panel
+// =============================================================================
+
+/**
+ * Initialize Admin Panel
+ * This is the main entry point called from the /admin HTML page
+ */
+async function initAdminPanel() {
+  try {
+    console.log('🚀 Initializing Admin Panel...');
+    
+    // Load current user and organization from localStorage
+    currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    currentOrganization = JSON.parse(localStorage.getItem('organization') || '{}');
+    
+    if (!currentUser.id || !currentOrganization.id) {
+      throw new Error('Usuario o organización no encontrados en localStorage');
+    }
+    
+    console.log('✅ User loaded:', currentUser.full_name);
+    console.log('✅ Organization loaded:', currentOrganization.name);
+    
+    // Build admin panel HTML
+    const adminPanelHtml = `
+      <div class="space-y-6">
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Total Usuarios</p>
+                <p class="text-3xl font-bold text-gray-900" id="stat-users">-</p>
+              </div>
+              <div class="bg-blue-100 p-3 rounded-full">
+                <i class="fas fa-users text-blue-600 text-2xl"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Riesgos Activos</p>
+                <p class="text-3xl font-bold text-gray-900" id="stat-risks">-</p>
+              </div>
+              <div class="bg-red-100 p-3 rounded-full">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Plan Actual</p>
+                <p class="text-xl font-bold text-gray-900 capitalize">${currentOrganization.plan_type || 'Free'}</p>
+              </div>
+              <div class="bg-purple-100 p-3 rounded-full">
+                <i class="fas fa-crown text-purple-600 text-2xl"></i>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-600">Estado</p>
+                <p class="text-xl font-bold text-green-600 capitalize">${currentOrganization.plan_status || 'Active'}</p>
+              </div>
+              <div class="bg-green-100 p-3 rounded-full">
+                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="border-b border-gray-200">
+            <nav class="flex -mb-px">
+              <button onclick="switchAdminView('dashboard')" id="tab-dashboard" class="px-6 py-4 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
+                <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+              </button>
+              <button onclick="switchAdminView('users')" id="tab-users" class="px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <i class="fas fa-users mr-2"></i>Usuarios
+              </button>
+              <button onclick="switchAdminView('organization')" id="tab-organization" class="px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <i class="fas fa-building mr-2"></i>Organización
+              </button>
+              <button onclick="switchAdminView('audit')" id="tab-audit" class="px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <i class="fas fa-history mr-2"></i>Audit Log
+              </button>
+            </nav>
+          </div>
+          
+          <!-- Content Area -->
+          <div id="admin-content" class="p-6">
+            <div class="text-center py-12">
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p class="text-gray-600">Cargando datos...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Inject HTML into admin panel container
+    document.getElementById('adminPanel').innerHTML = adminPanelHtml;
+    
+    // Load organization stats
+    await loadOrganizationStats();
+    
+    // Show dashboard view by default
+    await switchAdminView('dashboard');
+    
+    console.log('✅ Admin Panel initialized successfully');
+    
+  } catch (error) {
+    console.error('❌ Error initializing admin panel:', error);
+    document.getElementById('adminPanel').innerHTML = `
+      <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+        <h3 class="text-xl font-semibold text-red-800 mb-2">Error de Inicialización</h3>
+        <p class="text-red-600 mb-4">${error.message}</p>
+        <button onclick="location.reload()" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+          <i class="fas fa-sync-alt mr-2"></i>Reintentar
+        </button>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Load organization statistics for dashboard
+ */
+async function loadOrganizationStats() {
+  try {
+    const response = await axios.get('/api/admin/organization');
+    const org = response.data.organization;
+    
+    // Update stats
+    document.getElementById('stat-users').textContent = org.total_users || 0;
+    document.getElementById('stat-risks').textContent = org.active_risks || 0;
+    
+  } catch (error) {
+    console.error('Error loading organization stats:', error);
+  }
+}
+
+/**
+ * Switch between admin panel views
+ */
+async function switchAdminView(view) {
+  console.log('📄 Switching to view:', view);
+  currentView = view;
+  
+  // Update tab styles
+  document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+    tab.className = 'px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+  });
+  document.getElementById(`tab-${view}`).className = 'px-6 py-4 text-sm font-medium border-b-2 border-blue-600 text-blue-600';
+  
+  const contentArea = document.getElementById('admin-content');
+  showLoading('admin-content');
+  
+  try {
+    switch(view) {
+      case 'dashboard':
+        await renderDashboardView();
+        break;
+      case 'users':
+        await renderUsersView();
+        break;
+      case 'organization':
+        await renderOrganizationView();
+        break;
+      case 'audit':
+        await renderAuditView();
+        break;
+      default:
+        contentArea.innerHTML = '<p class="text-center text-gray-600">Vista no encontrada</p>';
+    }
+  } catch (error) {
+    console.error('Error switching view:', error);
+    contentArea.innerHTML = `
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+        <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-2"></i>
+        <p class="text-red-600">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Render dashboard view
+ */
+async function renderDashboardView() {
+  const content = `
+    <div class="space-y-6">
+      <h3 class="text-xl font-bold text-gray-900">Dashboard Administrativo</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h4 class="text-lg font-semibold text-blue-900 mb-3">
+            <i class="fas fa-info-circle mr-2"></i>Información de la Organización
+          </h4>
+          <div class="space-y-2 text-sm">
+            <p><span class="font-medium">Nombre:</span> ${currentOrganization.name}</p>
+            <p><span class="font-medium">Industria:</span> ${currentOrganization.industry || 'No especificada'}</p>
+            <p><span class="font-medium">Tamaño:</span> ${currentOrganization.size || 'No especificado'}</p>
+            <p><span class="font-medium">Plan:</span> <span class="capitalize">${currentOrganization.plan_type}</span></p>
+            <p><span class="font-medium">Máx. Usuarios:</span> ${currentOrganization.max_users || 'Ilimitado'}</p>
+            <p><span class="font-medium">Máx. Riesgos:</span> ${currentOrganization.max_risks || 'Ilimitado'}</p>
+          </div>
+        </div>
+        
+        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+          <h4 class="text-lg font-semibold text-green-900 mb-3">
+            <i class="fas fa-chart-line mr-2"></i>Acciones Rápidas
+          </h4>
+          <div class="space-y-3">
+            <button onclick="switchAdminView('users')" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-left">
+              <i class="fas fa-users mr-2"></i>Gestionar Usuarios
+            </button>
+            <button onclick="switchAdminView('organization')" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-left">
+              <i class="fas fa-cog mr-2"></i>Configuración de Organización
+            </button>
+            <button onclick="switchAdminView('audit')" class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-left">
+              <i class="fas fa-history mr-2"></i>Ver Audit Log
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="flex items-start">
+          <i class="fas fa-lightbulb text-yellow-600 text-xl mr-3 mt-1"></i>
+          <div>
+            <h4 class="font-semibold text-yellow-900 mb-1">Panel de Administración en Desarrollo</h4>
+            <p class="text-sm text-yellow-800">
+              El panel de administración está en fase de implementación. 
+              Las funcionalidades de gestión de usuarios, organizaciones y audit logs estarán disponibles próximamente.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('admin-content').innerHTML = content;
+}
+
+/**
+ * Render users management view
+ */
+async function renderUsersView() {
+  const content = `
+    <div class="space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-xl font-bold text-gray-900">Gestión de Usuarios</h3>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+          <i class="fas fa-plus mr-2"></i>Nuevo Usuario
+        </button>
+      </div>
+      
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+        <i class="fas fa-info-circle text-blue-600 text-2xl mb-2"></i>
+        <p class="text-blue-800">Módulo de gestión de usuarios en desarrollo</p>
+        <p class="text-sm text-blue-600 mt-1">Próximamente: CRUD completo, roles, permisos</p>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('admin-content').innerHTML = content;
+}
+
+/**
+ * Render organization settings view
+ */
+async function renderOrganizationView() {
+  try {
+    const response = await axios.get('/api/admin/organization');
+    const org = response.data.organization;
+    
+    const content = `
+      <div class="space-y-4">
+        <h3 class="text-xl font-bold text-gray-900">Configuración de Organización</h3>
+        
+        <form id="orgUpdateForm" class="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+              <input type="text" id="orgName" value="${org.name || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Industria</label>
+              <input type="text" id="orgIndustry" value="${org.industry || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tamaño</label>
+              <select id="orgSize" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="Small" ${org.size === 'Small' ? 'selected' : ''}>Pequeña (1-50)</option>
+                <option value="Medium" ${org.size === 'Medium' ? 'selected' : ''}>Mediana (51-250)</option>
+                <option value="Large" ${org.size === 'Large' ? 'selected' : ''}>Grande (251-1000)</option>
+                <option value="Enterprise" ${org.size === 'Enterprise' ? 'selected' : ''}>Enterprise (1000+)</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">País</label>
+              <input type="text" id="orgCountry" value="${org.country || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sitio Web</label>
+              <input type="url" id="orgWebsite" value="${org.website || ''}" placeholder="https://ejemplo.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+              <textarea id="orgDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">${org.description || ''}</textarea>
+            </div>
+          </div>
+          
+          <div class="flex justify-end space-x-3">
+            <button type="button" onclick="switchAdminView('dashboard')" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+              Cancelar
+            </button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              <i class="fas fa-save mr-2"></i>Guardar Cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    document.getElementById('admin-content').innerHTML = content;
+    
+    // Add form submit handler
+    document.getElementById('orgUpdateForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await updateOrganization();
+    });
+    
+  } catch (error) {
+    console.error('Error loading organization:', error);
+    document.getElementById('admin-content').innerHTML = `
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+        <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-2"></i>
+        <p class="text-red-600">Error al cargar datos de la organización</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Update organization settings
+ */
+async function updateOrganization() {
+  try {
+    showLoading('admin-content');
+    
+    const data = {
+      name: document.getElementById('orgName').value,
+      industry: document.getElementById('orgIndustry').value,
+      size: document.getElementById('orgSize').value,
+      country: document.getElementById('orgCountry').value,
+      website: document.getElementById('orgWebsite').value,
+      description: document.getElementById('orgDescription').value
+    };
+    
+    await axios.put('/api/admin/organization', data);
+    
+    showNotification('Organización actualizada exitosamente', 'success');
+    
+    // Reload organization data
+    await loadOrganizationStats();
+    await renderOrganizationView();
+    
+  } catch (error) {
+    console.error('Error updating organization:', error);
+    showNotification('Error al actualizar organización', 'error');
+    await renderOrganizationView();
+  }
+}
+
+/**
+ * Render audit log view
+ */
+async function renderAuditView() {
+  const content = `
+    <div class="space-y-4">
+      <h3 class="text-xl font-bold text-gray-900">Audit Log</h3>
+      
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+        <i class="fas fa-info-circle text-blue-600 text-2xl mb-2"></i>
+        <p class="text-blue-800">Módulo de audit log en desarrollo</p>
+        <p class="text-sm text-blue-600 mt-1">Próximamente: Historial completo de acciones administrativas</p>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('admin-content').innerHTML = content;
+}
+
+// Export initAdminPanel to global scope for HTML page to call
+window.initAdminPanel = initAdminPanel;
+window.switchAdminView = switchAdminView;

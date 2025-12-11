@@ -1,7 +1,7 @@
 # Metainfox AI - Sistema de Gestión de Riesgos con Inteligencia Artificial
 
 ![Status](https://img.shields.io/badge/status-active-success.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 Sistema avanzado de gestión de riesgos empresariales que utiliza inteligencia artificial para análisis predictivo, clasificación automática y alertas tempranas.
@@ -135,6 +135,103 @@ Contraseña para todas: `Demo123!@#`
 
 **Nota Importante**: El dashboard NUNCA se renderiza sin autenticación válida (implementado con script inline en `<head>` para prevenir renderizado antes de verificación).
 
+## ⚙️ Panel de Administración
+
+### Descripción
+El **Panel de Administración** (`/admin`) es una interfaz enterprise completa para gestionar usuarios, organizaciones y monitorear la actividad del sistema.
+
+### Acceso
+**Roles con acceso:**
+- ✅ **Super Admin** - Control completo del sistema
+- ✅ **Org Admin** - Gestión completa de su organización
+- ❌ **Manager, Member, Viewer** - Sin acceso (verán página de "Acceso Denegado")
+
+**URL:** https://metainfox.io/admin
+
+### Características del Panel
+
+#### 📊 Dashboard Administrativo
+- **Estadísticas en Tiempo Real:**
+  - Total de usuarios en la organización
+  - Riesgos activos pendientes
+  - Plan actual y estado de cuenta
+  - Métricas de uso
+
+- **Vista de Información:**
+  - Datos de la organización (nombre, industria, tamaño)
+  - Límites del plan (usuarios máximos, riesgos máximos)
+  - Acciones rápidas de navegación
+
+#### 👥 Gestión de Usuarios (En Desarrollo)
+- **CRUD Completo:**
+  - Crear nuevos usuarios e invitar por email
+  - Editar información de usuarios existentes
+  - Cambiar roles y permisos
+  - Suspender/reactivar cuentas temporalmente
+  - Eliminar usuarios permanentemente
+
+- **Roles Disponibles:**
+  - **Super Admin** 👑: Control total del sistema
+  - **Org Admin** 🛡️: Admin de organización
+  - **Manager** 📋: Gestor de equipo
+  - **Member** 👤: Usuario regular
+  - **Viewer** 👁️: Solo lectura
+
+#### 🏢 Configuración de Organización (Funcional)
+- **Campos Editables:**
+  - Nombre de la organización
+  - Industria y sector
+  - Tamaño de la empresa (Small, Medium, Large, Enterprise)
+  - País de operación
+  - Sitio web corporativo
+  - Descripción
+
+- **Actualización en Tiempo Real:**
+  - Los cambios se reflejan inmediatamente
+  - Validación de formularios
+  - Notificaciones de éxito/error
+  - Registro automático en audit log
+
+#### 📋 Audit Log (En Desarrollo)
+- Registro completo de todas las acciones administrativas
+- Filtros por usuario, acción, fecha
+- Exportación de logs para compliance
+- Trazabilidad completa para auditorías
+
+### Screenshots
+
+> **Nota:** Para capturar screenshots del panel admin en funcionamiento, siga la guía en: [ADMIN_SCREENSHOTS_GUIDE.md](./ADMIN_SCREENSHOTS_GUIDE.md)
+
+**Pantallas principales:**
+1. **Login** (`/login`) - Autenticación con verificación anti-bot
+2. **Dashboard** (`/`) - Vista principal con estadísticas de riesgos
+3. **Admin Panel** (`/admin`) - Panel administrativo completo
+4. **Admin - Dashboard View** - Información de organización y acciones rápidas
+5. **Admin - Organización View** - Formulario de configuración
+6. **Admin - Acceso Denegado** - Página para usuarios sin permisos
+
+### Guía de Usuario
+
+**Documentación completa:** [ADMIN_USER_GUIDE.md](./ADMIN_USER_GUIDE.md)
+
+**Inicio Rápido:**
+1. Login con usuario admin: `admin@metainfox.io`
+2. Click en botón "Admin" en el header
+3. Navegar por las tabs: Dashboard, Usuarios, Organización, Audit Log
+4. Editar configuración de organización y guardar cambios
+
+### Testing
+
+**Reporte completo:** [ADMIN_PANEL_TESTING_REPORT.md](./ADMIN_PANEL_TESTING_REPORT.md)
+
+**Resultados del testing:**
+- ✅ Control de acceso por roles (100% funcional)
+- ✅ API endpoints de organización (GET/PUT testeados)
+- ✅ Aislamiento multi-tenant verificado
+- ✅ Ruta `/admin` con HTML completo
+- ⏳ CRUD de usuarios (en desarrollo)
+- ⏳ Visualización de audit log (en desarrollo)
+
 ## 🚀 API Endpoints
 
 ### Autenticación
@@ -146,12 +243,21 @@ POST /api/auth/logout             # Cerrar sesión
 GET  /api/auth/me                 # Obtener usuario actual
 ```
 
-### Administración (requiere permisos)
+### Administración (requiere permisos de admin)
 ```bash
-GET  /api/admin/users             # Listar usuarios (admin)
-POST /api/admin/users/:id/role    # Cambiar rol (admin)
-GET  /api/admin/organizations     # Listar organizaciones (super_admin)
-GET  /api/admin/audit-logs        # Ver logs de auditoría (admin)
+# Organizaciones
+GET  /api/admin/organization           # Info de organización actual
+PUT  /api/admin/organization           # Actualizar organización
+
+# Usuarios (en desarrollo)
+GET  /api/admin/users                  # Listar usuarios (admin)
+POST /api/admin/users                  # Crear usuario (admin)
+PUT  /api/admin/users/:id/role         # Cambiar rol (admin)
+PUT  /api/admin/users/:id/suspend      # Suspender usuario (admin)
+DELETE /api/admin/users/:id            # Eliminar usuario (admin)
+
+# Audit Log (en desarrollo)
+GET  /api/admin/audit-logs             # Ver logs de auditoría (admin)
 ```
 
 ### Dashboard & Analytics

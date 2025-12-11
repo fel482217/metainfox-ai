@@ -766,6 +766,189 @@ app.get('/login', (c) => {
 });
 
 /**
+ * GET /admin
+ * Panel de administración (requiere autenticación y rol admin)
+ */
+app.get('/admin', requireAuth, (c) => {
+  const auth = getAuth(c);
+  if (!auth) {
+    return c.redirect('/login');
+  }
+  
+  // Check if user has admin permissions
+  const isAdmin = auth.user.role === 'super_admin' || auth.user.role === 'org_admin';
+  if (!isAdmin) {
+    return c.html(`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Acceso Denegado - Metainfox AI</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+      </head>
+      <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+          <div class="bg-white rounded-lg shadow-xl p-8 max-w-md text-center">
+              <i class="fas fa-ban text-6xl text-red-500 mb-4"></i>
+              <h1 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>
+              <p class="text-gray-600 mb-6">No tienes permisos para acceder al panel de administración.</p>
+              <a href="/" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                  Volver al Dashboard
+              </a>
+          </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  // Serve admin panel HTML
+  return c.html(`
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Metainfox AI</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    
+    <!-- CRITICAL: Check auth BEFORE rendering page -->
+    <script>
+      // Immediately check authentication before page renders
+      if (!localStorage.getItem('access_token')) {
+        // No token found, redirect immediately
+        window.location.href = '/login';
+      }
+    </script>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-800">Metainfox AI</h1>
+                            <p class="text-xs text-gray-500">Panel de Administración</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm font-medium text-gray-700" id="userName">Cargando...</span>
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 font-medium" id="userRole"></span>
+                        </div>
+                        <div class="text-xs text-gray-500" id="orgName">Cargando...</div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <a href="/" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">
+                            <i class="fas fa-home mr-1"></i> Dashboard
+                        </a>
+                        <button onclick="logout()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium">
+                            <i class="fas fa-sign-out-alt mr-1"></i> Salir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+            <div class="bg-white rounded-lg p-8 max-w-sm text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-700 font-medium">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Admin Panel Container -->
+        <div id="adminPanel">
+            <div class="text-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Cargando panel de administración...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+    <script src="/static/admin.js"></script>
+    
+    <script>
+        // Global logout function
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('organization');
+            window.location.href = '/login';
+        }
+        
+        // Initialize admin panel on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Load user info
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const org = JSON.parse(localStorage.getItem('organization') || '{}');
+                
+                // Update header
+                document.getElementById('userName').textContent = user.full_name || 'Usuario';
+                document.getElementById('orgName').textContent = org.name || 'Organización';
+                
+                // Display user role badge
+                const roleNames = {
+                    'super_admin': 'Super Admin',
+                    'org_admin': 'Admin',
+                    'manager': 'Manager',
+                    'member': 'Miembro',
+                    'viewer': 'Observador'
+                };
+                document.getElementById('userRole').textContent = roleNames[user.role] || user.role;
+                
+                // Initialize admin panel (from admin.js)
+                if (typeof initAdminPanel === 'function') {
+                    await initAdminPanel();
+                } else {
+                    console.error('admin.js no cargado correctamente');
+                    document.getElementById('adminPanel').innerHTML = \`
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+                            <h3 class="text-lg font-semibold text-red-800 mb-2">Error al Cargar</h3>
+                            <p class="text-red-600">No se pudo cargar el módulo de administración.</p>
+                            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                Reintentar
+                            </button>
+                        </div>
+                    \`;
+                }
+            } catch (error) {
+                console.error('Error initializing admin panel:', error);
+                document.getElementById('adminPanel').innerHTML = \`
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+                        <h3 class="text-lg font-semibold text-red-800 mb-2">Error de Inicialización</h3>
+                        <p class="text-red-600">\${error.message}</p>
+                    </div>
+                \`;
+            }
+        });
+    </script>
+</body>
+</html>
+  `);
+});
+
+/**
  * GET /
  * Página principal del dashboard
  */
