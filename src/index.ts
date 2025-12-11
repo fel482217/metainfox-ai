@@ -881,11 +881,26 @@ app.get('/admin', (c) => {
         // Check if user has admin role
         const isAdmin = user.role === 'super_admin' || user.role === 'org_admin';
         
-        console.log('🔍 ADMIN CHECK - User Role:', user.role, '| Is Admin:', isAdmin);
+        // VERBOSE LOGGING for debugging
+        console.log('╔═══════════════════════════════════════╗');
+        console.log('║   METAINFOX ADMIN ACCESS CHECK       ║');
+        console.log('╚═══════════════════════════════════════╝');
+        console.log('📧 Email:', user.email);
+        console.log('👤 Role:', user.role);
+        console.log('🔑 Is Admin?', isAdmin);
+        console.log('✅ Allowed Roles:', ['super_admin', 'org_admin']);
+        console.log('─────────────────────────────────────────');
         
         if (!isAdmin) {
-          // User is not admin, show access denied page immediately - redirect to login
-          console.warn('❌ User is not admin. Redirecting to login...');
+          // User is not admin - SHOW CLEAR ERROR
+          console.error('❌❌❌ ACCESS DENIED ❌❌❌');
+          console.error('Your role:', user.role);
+          console.error('Required roles:', ['super_admin', 'org_admin']);
+          console.error('Redirecting to login...');
+          
+          // Show alert for debugging
+          alert('DEBUG: Tu rol es "' + user.role + '". Se requiere "org_admin" o "super_admin".');
+          
           window.location.replace('/login?error=access_denied&role=' + user.role);
           document.open();
           document.write('<!DOCTYPE html><html><body></body></html>');
@@ -894,7 +909,9 @@ app.get('/admin', (c) => {
         }
         
         // If we reach here, user is admin - continue rendering page
-        console.log('✅ Admin access granted. Rendering panel...');
+        console.log('✅✅✅ ADMIN ACCESS GRANTED ✅✅✅');
+        console.log('🚀 Rendering admin panel...');
+        console.log('═════════════════════════════════════════');
         
       })(); // End IIFE
     </script>
