@@ -7,28 +7,57 @@ import { Hono } from 'hono'
 import type { D1Database } from '@cloudflare/workers-types'
 import { login, refreshAccessToken, logout, hashPassword } from '../services/auth'
 import { requireAuth, getAuth } from '../middleware/auth'
+import { 
+  strictAuthRateLimit, 
+  resetAuthRateLimit, 
+  botDetection, 
+  validateEmail, 
+  validatePassword,
+  preventEnumeration,
+  checkHoneypot,
+  csrfProtection
+} from '../middleware/security'
 
 const authRoutes = new Hono()
+
+// Apply security middleware to all auth routes
+authRoutes.use('*', botDetection)
+authRoutes.use('*', checkHoneypot)
+authRoutes.use('*', csrfProtection)
 
 // ============================================
 // POST /api/auth/login
 // ============================================
-authRoutes.post('/login', async (c) => {
+authRoutes.post('/login', strictAuthRateLimit(5, 300000), async (c) => {
+  const delayResponse = await preventEnumeration(500)
+  
   try {
     const body = await c.req.json()
     const { email, password, organization_slug } = body
 
     if (!email || !password) {
+      await delayResponse()
       return c.json({ error: 'Email y contraseña requeridos' }, 400)
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      await delayResponse()
+      return c.json({ error: 'Formato de email inválido' }, 400)
     }
 
     const db = c.env.DB as D1Database
     const result = await login(db, email, password, organization_slug)
 
     if (!result.success) {
+      await delayResponse()
       return c.json({ error: result.message }, 401)
     }
 
+    // Reset rate limit on successful login
+    resetAuthRateLimit(c)
+    
+    await delayResponse()
     return c.json({
       success: true,
       access_token: result.access_token,
@@ -38,6 +67,7 @@ authRoutes.post('/login', async (c) => {
     })
   } catch (error) {
     console.error('Login error:', error)
+    await delayResponse()
     return c.json({ error: 'Error en el servidor' }, 500)
   }
 })
@@ -123,25 +153,31 @@ authRoutes.get('/me', requireAuth, async (c) => {
 // ============================================
 // POST /api/auth/register
 // ============================================
-authRoutes.post('/register', async (c) => {
+authRoutes.post('/register', strictAuthRateLimit(3, 600000), async (c) => {
+  const delayResponse = await preventEnumeration(500)
+  
   try {
     const body = await c.req.json()
     const { email, password, full_name, organization_name } = body
 
     if (!email || !password || !full_name || !organization_name) {
+      await delayResponse()
       return c.json({ 
         error: 'Email, contraseña, nombre completo y nombre de organización requeridos' 
       }, 400)
     }
 
-    // Basic email validation
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return c.json({ error: 'Email inválido' }, 400)
+    // Validate email format
+    if (!validateEmail(email)) {
+      await delayResponse()
+      return c.json({ error: 'Formato de email inválido' }, 400)
     }
 
-    // Password strength validation
-    if (password.length < 8) {
-      return c.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, 400)
+    // Validate password strength
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      await delayResponse()
+      return c.json({ error: passwordValidation.message }, 400)
     }
 
     const db = c.env.DB as D1Database
@@ -153,6 +189,7 @@ authRoutes.post('/register', async (c) => {
       .first()
 
     if (existingUser) {
+      await delayResponse()
       return c.json({ error: 'El email ya está registrado' }, 409)
     }
 
@@ -225,12 +262,17 @@ authRoutes.post('/register', async (c) => {
     const loginResult = await login(db, email, password)
 
     if (!loginResult.success) {
+      await delayResponse()
       return c.json({ 
         success: true,
         message: 'Cuenta creada exitosamente, por favor inicia sesión' 
       })
     }
 
+    // Reset rate limit on successful registration
+    resetAuthRateLimit(c)
+    
+    await delayResponse()
     return c.json({
       success: true,
       message: 'Cuenta creada exitosamente',
@@ -241,6 +283,7 @@ authRoutes.post('/register', async (c) => {
     }, 201)
   } catch (error) {
     console.error('Register error:', error)
+    await delayResponse()
     return c.json({ error: 'Error en el servidor' }, 500)
   }
 })
