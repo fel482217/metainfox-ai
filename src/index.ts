@@ -821,31 +821,45 @@ app.get('/admin', (c) => {
     
     <!-- CRITICAL: Check auth and admin role BEFORE rendering page -->
     <script>
-      // Immediately check authentication before page renders
-      const accessToken = localStorage.getItem('access_token');
-      if (!accessToken) {
-        // No token found, redirect immediately
-        window.location.href = '/login';
-      }
-      
-      // Get user from localStorage (includes role from backend)
-      const userStr = localStorage.getItem('user');
-      if (!userStr) {
-        // No user data, force re-login
-        console.warn('No user data in localStorage. Redirecting to login...');
-        localStorage.clear();
-        window.location.href = '/login';
-      }
-      
-      try {
-        const user = JSON.parse(userStr);
+      (function() {
+        // Immediately check authentication before page renders
+        const accessToken = localStorage.getItem('access_token');
+        if (!accessToken) {
+          // No token found, redirect immediately
+          console.warn('❌ No access token. Redirecting to login...');
+          window.location.replace('/login');
+          return;
+        }
+        
+        // Get user from localStorage (includes role from backend)
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+          // No user data, force re-login
+          console.warn('❌ No user data in localStorage. Clearing and redirecting...');
+          localStorage.clear();
+          window.location.replace('/login');
+          return;
+        }
+        
+        let user;
+        try {
+          user = JSON.parse(userStr);
+        } catch (e) {
+          // Corrupted user data
+          console.error('❌ CORRUPTED localStorage.user - Cannot parse JSON:', e);
+          console.warn('🔄 Clearing localStorage and forcing fresh login...');
+          localStorage.clear();
+          window.location.replace('/login');
+          return;
+        }
         
         // CRITICAL: Check if user.role exists
-        if (!user.role) {
+        if (!user || !user.role) {
           // Old user object without role - force re-login
-          console.warn('User object missing role field. Forcing re-login to get updated data...');
+          console.warn('❌ User object missing role field. Forcing re-login...');
           localStorage.clear();
-          window.location.href = '/login';
+          window.location.replace('/login');
+          return;
         }
         
         // Check if user has admin role
@@ -883,13 +897,9 @@ app.get('/admin', (c) => {
         }
         
         // If we reach here, user is admin - continue rendering page
+        console.log('✅ Admin access granted. Rendering panel...');
         
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-        // Invalid user data, force re-login
-        localStorage.clear();
-        window.location.href = '/login';
-      }
+      })(); // End IIFE
     </script>
 
     <!-- Header -->
