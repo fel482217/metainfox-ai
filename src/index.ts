@@ -772,6 +772,12 @@ app.get('/login', (c) => {
  * el token desde localStorage. El control de acceso por rol también se hace en cliente.
  */
 app.get('/admin', (c) => {
+  // CRITICAL: Prevent ANY caching
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  c.header('Pragma', 'no-cache');
+  c.header('Expires', '0');
+  c.header('Surrogate-Control', 'no-store');
+  
   // Servir HTML directamente - la verificación se hace en el cliente
   // El script inline en <head> verifica localStorage.access_token
   // El frontend (admin.js) verifica el rol del usuario
