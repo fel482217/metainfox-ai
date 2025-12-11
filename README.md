@@ -28,10 +28,10 @@ Sistema avanzado de gestión de riesgos empresariales que utiliza inteligencia a
 
 ## 🎯 URLs del Proyecto
 
-- **Dashboard**: https://3000-ixhphtag1cp5vzidyw43p-c81df28e.sandbox.novita.ai
-- **API Base**: https://3000-ixhphtag1cp5vzidyw43p-c81df28e.sandbox.novita.ai/api
-- **GitHub**: (Pendiente de configurar)
-- **Producción**: (Pendiente de desplegar)
+- **Producción**: https://2c2f0c9a.metainfox-ai.pages.dev
+- **API Producción**: https://2c2f0c9a.metainfox-ai.pages.dev/api
+- **Desarrollo**: https://3000-ixhphtag1cp5vzidyw43p-c81df28e.sandbox.novita.ai
+- **GitHub**: (Configurar con tu repositorio)
 
 ## 📊 Arquitectura de Datos
 

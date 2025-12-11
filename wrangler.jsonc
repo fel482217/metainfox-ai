@@ -1,18 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "metainfox-ai",
-  "main": "src/index.ts",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
   "pages_build_output_dir": "./dist",
 
   // D1 Database para gestión de riesgos
-  // Para desarrollo local, no necesita database_id (se crea automáticamente)
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "metainfox-db",
-      "database_id": "local-dev-db"
+      "database_name": "metainfox-db-prod",
+      "database_id": "b7f07d5f-e56a-45d5-bcb9-83d6e2eb4c6a"
     }
   ],
 
