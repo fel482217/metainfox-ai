@@ -10,6 +10,7 @@ Sistema avanzado de gestión de riesgos empresariales que utiliza inteligencia a
 
 ### ✅ Funcionalidades Implementadas
 
+**Core Features:**
 - **Dashboard en Tiempo Real** - Visualización de métricas clave y KPIs
 - **Análisis con IA** - Powered by Llama 3.3 70B (Groq)
 - **Chatbot Inteligente** - Asistente conversacional para consultas
@@ -17,6 +18,18 @@ Sistema avanzado de gestión de riesgos empresariales que utiliza inteligencia a
 - **Clasificación Automática** - Categorización inteligente por severidad
 - **Base de Datos D1** - SQLite distribuido en Cloudflare Edge
 - **API REST Completa** - Endpoints para integración
+
+**🏢 Enterprise Features (NEW!):**
+- **Multi-Tenancy** - Aislamiento completo de datos por organización
+- **Autenticación JWT** - Sistema de login seguro con access/refresh tokens
+- **Control de Acceso (RBAC)** - 5 roles predefinidos + 26 permisos granulares
+- **Gestión de Usuarios** - Invitaciones, roles, suspensión de usuarios
+- **Gestión de Organizaciones** - Configuración, límites y planes
+- **Audit Logs** - Trazabilidad completa para compliance
+- **Rate Limiting** - Control de requests por organización
+- **Panel de Administración** - Gestión completa de usuarios y permisos
+
+Ver documentación completa: [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md)
 
 ### 🚧 Próximas Funcionalidades
 

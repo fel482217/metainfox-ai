@@ -4,10 +4,102 @@
 let currentRisks = [];
 let dashboardStats = {};
 let chatHistory = [];
+let currentUser = null;
+let currentOrganization = null;
+
+// Authentication state
+function getAccessToken() {
+  return localStorage.getItem('access_token');
+}
+
+function getRefreshToken() {
+  return localStorage.getItem('refresh_token');
+}
+
+function isAuthenticated() {
+  return !!getAccessToken();
+}
+
+function logout() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('organization');
+  window.location.href = '/static/auth.html';
+}
+
+// Axios interceptor for authentication
+axios.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Axios interceptor for token refresh
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If 401 and we haven't retried yet, try to refresh token
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) {
+          throw new Error('No refresh token');
+        }
+        
+        const response = await axios.post('/api/auth/refresh', {
+          refresh_token: refreshToken
+        });
+        
+        if (response.data.success) {
+          localStorage.setItem('access_token', response.data.access_token);
+          originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
+          return axios(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        logout();
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 Metainfox AI initialized');
+  
+  // Check authentication
+  if (!isAuthenticated()) {
+    window.location.href = '/static/auth.html';
+    return;
+  }
+  
+  // Load user data from localStorage
+  try {
+    currentUser = JSON.parse(localStorage.getItem('user'));
+    currentOrganization = JSON.parse(localStorage.getItem('organization'));
+    
+    // Update UI with user info
+    if (currentUser) {
+      const userNameEl = document.getElementById('userName');
+      const orgNameEl = document.getElementById('orgName');
+      if (userNameEl) userNameEl.textContent = currentUser.full_name;
+      if (orgNameEl) orgNameEl.textContent = currentOrganization?.name || 'N/A';
+    }
+  } catch (error) {
+    console.error('Error loading user data:', error);
+  }
   
   // Load initial data
   await loadDashboard();

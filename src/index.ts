@@ -7,6 +7,13 @@ import { serveStatic } from 'hono/cloudflare-workers';
 import type { HonoEnv } from './types';
 import * as AI from './services/ai';
 
+// Import routes
+import authRoutes from './routes/auth';
+import adminRoutes from './routes/admin';
+
+// Import middleware
+import { requireAuth, ensureTenantIsolation, auditLog, rateLimit, getAuth } from './middleware/auth';
+
 const app = new Hono<HonoEnv>();
 
 // Enable CORS for API routes
@@ -16,8 +23,28 @@ app.use('/api/*', cors());
 app.use('/static/*', serveStatic({ root: './public' }));
 
 // ============================================================================
+// AUTHENTICATION & AUTHORIZATION ROUTES
+// ============================================================================
+
+// Auth routes (public)
+app.route('/api/auth', authRoutes);
+
+// Admin routes (protected)
+app.route('/api/admin', adminRoutes);
+
+// ============================================================================
 // API ROUTES - Dashboard & Analytics
 // ============================================================================
+
+// ============================================================================
+// PROTECTED ROUTES - Require Authentication
+// ============================================================================
+
+// Apply auth + tenant isolation to all protected routes
+app.use('/api/dashboard/*', requireAuth, ensureTenantIsolation, rateLimit(200))
+app.use('/api/risks/*', requireAuth, ensureTenantIsolation, rateLimit(200))
+app.use('/api/analyze', requireAuth, ensureTenantIsolation, rateLimit(50))
+app.use('/api/chat', requireAuth, ensureTenantIsolation, rateLimit(100))
 
 /**
  * GET /api/dashboard/stats
@@ -26,19 +53,25 @@ app.use('/static/*', serveStatic({ root: './public' }));
 app.get('/api/dashboard/stats', async (c) => {
   try {
     const db = c.env.DB;
+    const auth = getAuth(c);
+    if (!auth) return c.json({ error: 'No autorizado' }, 401);
     
-    // Total de riesgos
-    const totalRisks = await db.prepare('SELECT COUNT(*) as count FROM risks').first<{ count: number }>();
+    // Total de riesgos (filtered by organization)
+    const totalRisks = await db.prepare(
+      'SELECT COUNT(*) as count FROM risks WHERE organization_id = ?'
+    ).bind(auth.organization.id).first<{ count: number }>();
     
     // Riesgos activos (open, investigating, mitigating)
     const activeRisks = await db.prepare(
-      `SELECT COUNT(*) as count FROM risks WHERE status IN ('open', 'investigating', 'mitigating')`
-    ).first<{ count: number }>();
+      `SELECT COUNT(*) as count FROM risks 
+       WHERE organization_id = ? AND status IN ('open', 'investigating', 'mitigating')`
+    ).bind(auth.organization.id).first<{ count: number }>();
     
     // Riesgos críticos activos
     const criticalRisks = await db.prepare(
-      `SELECT COUNT(*) as count FROM risks WHERE severity = 'critical' AND status != 'closed'`
-    ).first<{ count: number }>();
+      `SELECT COUNT(*) as count FROM risks 
+       WHERE organization_id = ? AND severity = 'critical' AND status != 'closed'`
+    ).bind(auth.organization.id).first<{ count: number }>();
     
     // Tiempo promedio de respuesta (última semana)
     const responseTime = await db.prepare(`
@@ -46,30 +79,30 @@ app.get('/api/dashboard/stats', async (c) => {
         (julianday(COALESCE(resolved_at, CURRENT_TIMESTAMP)) - julianday(detected_at)) * 24
       ) as avg_hours
       FROM risks 
-      WHERE detected_at >= datetime('now', '-7 days')
-    `).first<{ avg_hours: number }>();
+      WHERE organization_id = ? AND detected_at >= datetime('now', '-7 days')
+    `).bind(auth.organization.id).first<{ avg_hours: number }>();
     
     // Costo evitado este mes
     const costSaved = await db.prepare(`
       SELECT COALESCE(SUM(cost_avoided), 0) as total
       FROM mitigation_actions
-      WHERE executed_at >= datetime('now', 'start of month')
-    `).first<{ total: number }>();
+      WHERE organization_id = ? AND executed_at >= datetime('now', 'start of month')
+    `).bind(auth.organization.id).first<{ total: number }>();
     
     // Amenazas mitigadas esta semana
     const threatsMitigated = await db.prepare(`
       SELECT COUNT(*) as count
       FROM risks
-      WHERE status IN ('resolved', 'closed') 
+      WHERE organization_id = ? AND status IN ('resolved', 'closed') 
         AND resolved_at >= datetime('now', '-7 days')
-    `).first<{ count: number }>();
+    `).bind(auth.organization.id).first<{ count: number }>();
     
     // Score de riesgo global (promedio de riesgos activos)
     const riskScore = await db.prepare(`
       SELECT COALESCE(AVG(risk_score), 0) as avg_score
       FROM risks
-      WHERE status IN ('open', 'investigating', 'mitigating')
-    `).first<{ avg_score: number }>();
+      WHERE organization_id = ? AND status IN ('open', 'investigating', 'mitigating')
+    `).bind(auth.organization.id).first<{ avg_score: number }>();
     
     return c.json({
       total_risks: totalRisks?.count || 0,
@@ -89,15 +122,18 @@ app.get('/api/dashboard/stats', async (c) => {
 
 /**
  * GET /api/risks
- * Lista todos los riesgos con filtros opcionales
+ * Lista todos los riesgos con filtros opcionales (multi-tenant)
  */
 app.get('/api/risks', async (c) => {
   try {
     const db = c.env.DB;
+    const auth = getAuth(c);
+    if (!auth) return c.json({ error: 'No autorizado' }, 401);
+    
     const { category, severity, status, limit = '50' } = c.req.query();
     
-    let query = 'SELECT * FROM risks WHERE 1=1';
-    const params: any[] = [];
+    let query = 'SELECT * FROM risks WHERE organization_id = ?';
+    const params: any[] = [auth.organization.id];
     
     if (category) {
       query += ' AND category = ?';
@@ -130,24 +166,33 @@ app.get('/api/risks', async (c) => {
 
 /**
  * GET /api/risks/:id
- * Obtiene detalles de un riesgo específico
+ * Obtiene detalles de un riesgo específico (multi-tenant)
  */
 app.get('/api/risks/:id', async (c) => {
   try {
     const db = c.env.DB;
+    const auth = getAuth(c);
+    if (!auth) return c.json({ error: 'No autorizado' }, 401);
+    
     const id = c.req.param('id');
     
-    const risk = await db.prepare('SELECT * FROM risks WHERE id = ?').bind(id).first();
+    const risk = await db.prepare(
+      'SELECT * FROM risks WHERE id = ? AND organization_id = ?'
+    ).bind(id, auth.organization.id).first();
     
     if (!risk) {
       return c.json({ error: 'Risk not found' }, 404);
     }
     
     // Get related alerts
-    const alerts = await db.prepare('SELECT * FROM alerts WHERE risk_id = ?').bind(id).all();
+    const alerts = await db.prepare(
+      'SELECT * FROM alerts WHERE risk_id = ? AND organization_id = ?'
+    ).bind(id, auth.organization.id).all();
     
     // Get mitigation actions
-    const actions = await db.prepare('SELECT * FROM mitigation_actions WHERE risk_id = ?').bind(id).all();
+    const actions = await db.prepare(
+      'SELECT * FROM mitigation_actions WHERE risk_id = ? AND organization_id = ?'
+    ).bind(id, auth.organization.id).all();
     
     return c.json({
       ...risk,
@@ -163,19 +208,24 @@ app.get('/api/risks/:id', async (c) => {
 
 /**
  * POST /api/risks
- * Crea un nuevo riesgo
+ * Crea un nuevo riesgo (multi-tenant)
  */
 app.post('/api/risks', async (c) => {
   try {
     const db = c.env.DB;
+    const auth = getAuth(c);
+    if (!auth) return c.json({ error: 'No autorizado' }, 401);
+    
     const body = await c.req.json();
     
     const result = await db.prepare(`
       INSERT INTO risks (
-        category, severity, title, description, source, source_url,
-        impact_score, likelihood_score, ai_analysis, tags
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        organization_id, created_by, category, severity, title, description, 
+        source, source_url, impact_score, likelihood_score, ai_analysis, tags
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
+      auth.organization.id,
+      auth.user.id,
       body.category,
       body.severity,
       body.title,
@@ -188,6 +238,12 @@ app.post('/api/risks', async (c) => {
       body.tags || null
     ).run();
     
+    // Audit log
+    await db.prepare(`
+      INSERT INTO audit_logs (organization_id, user_id, action, resource_type, resource_id, status)
+      VALUES (?, ?, 'create_risk', 'risk', ?, 'success')
+    `).bind(auth.organization.id, auth.user.id, result.meta.last_row_id).run();
+    
     return c.json({ id: result.meta.last_row_id, message: 'Risk created' }, 201);
     
   } catch (error) {
@@ -198,29 +254,44 @@ app.post('/api/risks', async (c) => {
 
 /**
  * POST /api/risks/:id/mitigate
- * Registra una acción de mitigación
+ * Registra una acción de mitigación (multi-tenant)
  */
 app.post('/api/risks/:id/mitigate', async (c) => {
   try {
     const db = c.env.DB;
+    const auth = getAuth(c);
+    if (!auth) return c.json({ error: 'No autorizado' }, 401);
+    
     const id = c.req.param('id');
     const body = await c.req.json();
     
+    // Verify risk belongs to organization
+    const risk = await db.prepare(
+      'SELECT id FROM risks WHERE id = ? AND organization_id = ?'
+    ).bind(id, auth.organization.id).first();
+    
+    if (!risk) {
+      return c.json({ error: 'Risk not found' }, 404);
+    }
+    
     // Insert mitigation action
     await db.prepare(`
-      INSERT INTO mitigation_actions (risk_id, action_type, action_description, executed_by)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO mitigation_actions (
+        organization_id, risk_id, action_type, action_description, executed_by
+      ) VALUES (?, ?, ?, ?, ?)
     `).bind(
+      auth.organization.id,
       id,
       body.action_type || 'mitigate',
       body.action,
-      body.executed_by || 'System'
+      auth.user.full_name
     ).run();
     
     // Update risk status
     await db.prepare(`
-      UPDATE risks SET status = 'mitigating', updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).bind(id).run();
+      UPDATE risks SET status = 'mitigating', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ? AND organization_id = ?
+    `).bind(id, auth.organization.id).run();
     
     return c.json({ message: 'Mitigation action recorded' });
     
@@ -338,8 +409,16 @@ app.post('/api/report', async (c) => {
 });
 
 // ============================================================================
-// FRONTEND ROUTE
+// FRONTEND ROUTES
 // ============================================================================
+
+/**
+ * GET /login
+ * Página de login/registro
+ */
+app.get('/login', (c) => {
+  return c.redirect('/static/auth.html');
+});
 
 /**
  * GET /
@@ -369,10 +448,14 @@ app.get('/', (c) => {
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
-                    <div class="text-right">
-                        <p class="text-xs opacity-75">Powered by</p>
-                        <p class="font-semibold">Llama 3.1 • Groq</p>
+                    <div class="text-right text-sm">
+                        <p class="font-semibold" id="userName">Usuario</p>
+                        <p class="text-xs opacity-75" id="orgName">Organización</p>
                     </div>
+                    <button onclick="logout()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        <i class="fas fa-sign-out-alt mr-1"></i>
+                        Salir
+                    </button>
                 </div>
             </div>
         </div>
