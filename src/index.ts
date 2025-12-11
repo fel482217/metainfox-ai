@@ -833,6 +833,14 @@ app.get('/admin', (c) => {
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
+          
+          // CRITICAL FIX: If user.role is missing, force logout to refresh user data
+          if (!user.role) {
+            console.warn('User object missing role field. Forcing re-login...');
+            localStorage.clear();
+            window.location.href = '/login';
+          }
+          
           const isAdmin = user.role === 'super_admin' || user.role === 'org_admin';
           
           if (!isAdmin) {
